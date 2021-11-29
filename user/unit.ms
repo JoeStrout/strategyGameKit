@@ -6,6 +6,7 @@
 
 import "mathUtil"
 import "utils"
+import "qa"
 ensureImport "mapview"
 
 Unit = {}
@@ -17,7 +18,7 @@ Unit.hp = 5
 Unit.maxAP = 3
 Unit.ap = 3
 Unit.hasOrders = false
-Unit.teamColor = "#CCCCFF"
+Unit.player = null  // Player that owns this unit
 
 display(4).mode = displayMode.sprite
 unitDisp = display(4)
@@ -35,15 +36,21 @@ unitImages = {}
 unitImages.dwarf = file.loadImage("pics/dorf2.png")
 
 // Initialize this unit.  Call this after creating the unit with `new`.
-Unit.init = function()
+Unit.init = function(owningPlayer)
+	qa.assert owningPlayer != null
+	self.player = owningPlayer
 	self.base = new Sprite
 	self.figure = new Sprite
 end function
 
+Unit.updateBase = function()
+	self.base.image = composeDisc(self.player.color,
+	  self.hp / self.maxHP * 100, self.ap, self.maxAP, self.hasOrders)
+end function
+
 // Add this unit to the display.
 Unit.show = function(includeFigure = false)
-	self.base.image = composeDisc(self.teamColor,
-	  self.hp / self.maxHP * 100, self.ap, self.maxAP, self.hasOrders)
+	self.updateBase
 	self.base.scale = 0.5
 	unitDisp.sprites.push self.base
 	
@@ -68,11 +75,21 @@ Unit.setPosition = function(col, row)
 	self.row = row
 	self.base.x = mapview.xForCell(col, row)
 	self.base.y = mapview.yForCell(col, row)
+	self.base.sortOrder = -self.base.y
 	if self.figure then
 		self.figure.x = self.base.x
 		self.figure.y = self.base.y +
 		   self.figure.image.height * self.figure.scale / 2
+		self.figure.sortOrder = self.base.sortOrder + 1
 	end if
+	unitDisp.sprites.sort "sortOrder"
+end function
+
+Unit.goTo = function(colRowList)
+	if self.ap < 1 then return  // out of action points!
+	self.ap = self.ap - 1
+	self.updateBase
+	self.setPosition colRowList[0], colRowList[1]
 end function
 
 workBuffer = new PixelDisplay
@@ -106,8 +123,8 @@ composeDisc = function(baseColor="#CCCCFF", healthPercent=50, apLeft=3, apTotal=
 			c = color.lime
 		end if
 		workBuffer.drawImage actionPointImage[i],
-		  0, 0, workBuffer.width, workBuffer.height,
-		  0, 0, workBuffer.width, workBuffer.height, c
+		0, 0, workBuffer.width, workBuffer.height,
+		0, 0, workBuffer.width, workBuffer.height, c
 	end for
 	
 	// return the composite image
@@ -117,8 +134,10 @@ end function
 if locals == globals then
 	// Test this module.
 	clear
+	fakePlayer = {}
+	fakePlayer.color = "#8888FF"
 	u = new Unit
-	u.init
+	u.init fakePlayer
 	u.figure.image = unitImages.dwarf
 	u.setPosition 10,10
 	u.hp = 3

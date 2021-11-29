@@ -1,19 +1,20 @@
 // This module is responsible for drawing the map.
 
-clear
-display(5).mode = displayMode.off
-display(6).mode = displayMode.tile
-td = display(6)
-td.tileSet = file.loadImage("/sys/pics/hextiles-55x64.png")
-td.tileSetTileSize = [55,64]
-td.cellSize = [55,32]
-td.oddRowOffset = 0.5
-td.extent = [50, 50]
-td.overlap = [0, 8]
-td.clear 2
-
-spacing = [td.cellSize[0] - td.overlap[0], td.cellSize[1] - td.overlap[1]]
-
+init = function()
+	clear
+	display(5).mode = displayMode.off
+	display(6).mode = displayMode.tile
+	outer.td = display(6)
+	td.tileSet = file.loadImage("/sys/pics/hextiles-55x64.png")
+	td.tileSetTileSize = [55,64]
+	td.cellSize = [55,32]
+	td.oddRowOffset = 0.5
+	td.extent = [50, 50]
+	td.overlap = [0, 8]
+	td.clear 2
+	
+	outer.spacing = [td.cellSize[0] - td.overlap[0], td.cellSize[1] - td.overlap[1]]
+end function
 
 //----------------------------------------------------------------------
 // Make a couple of functions to convert between hex cell
@@ -51,14 +52,14 @@ rowForXY = function(x, y)
 end function
 
 inBounds = function(col, row)
-	return col >= 0 and col < columns and row >= 0 and row < rows
+	return col >= 0 and col < td.extent[0] and row >= 0 and row < td.extent[1]
 end function
 
 cellAt = function(xy)
 	c = colForXY(xy.x, xy.y)
 	r = rowForXY(xy.x, xy.y)
 	if not inBounds(c, r) then return null
-	return cellInfo[c][r]
+	return [c, r]
 end function
 
 //----------------------------------------------------------------------
@@ -89,6 +90,7 @@ end function
 //----------------------------------------------------------------------
 
 if locals == globals then	
+	init
 	generateMap
 	
 	td.scrollX = 30
