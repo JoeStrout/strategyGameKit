@@ -7,3 +7,11 @@ globals.ensureImport = function(moduleName)
 	import moduleName
 	globals[moduleName] = locals[moduleName]
 end function
+
+roll = function(qtyDice=1, sides=6)
+	sum = 0
+	for i in range(1, qtyDice)
+		sum = sum + ceil(rnd * sides)
+	end for
+	return sum
+end function

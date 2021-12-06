@@ -5,6 +5,7 @@
 // state.
 
 import "mathUtil"
+import "listUtil"
 import "utils"
 import "qa"
 ensureImport "mapview"
@@ -61,7 +62,8 @@ end function
 
 // Remove this unit from the display
 Unit.hide = function()
-	
+	unitDisp.sprites.removeVal self.base
+	unitDisp.sprites.removeVal self.figure	
 end function
 
 // Update this method.  Called frequently while the unit is
@@ -70,26 +72,82 @@ Unit.update = function()
 	
 end function
 
-Unit.setPosition = function(col, row)
-	self.col = col
-	self.row = row
-	self.base.x = mapview.xForCell(col, row)
-	self.base.y = mapview.yForCell(col, row)
+// Remove this unit from the game.
+Unit.die = function()
+	self.hide
+	self.player.units.removeVal self
+	self.player = null
+end function
+
+Unit.setPositionXY = function(x, y)
+	self.base.x = x
+	self.base.y = y
 	self.base.sortOrder = -self.base.y
 	if self.figure then
 		self.figure.x = self.base.x
 		self.figure.y = self.base.y +
-		   self.figure.image.height * self.figure.scale / 2
+		self.figure.image.height * self.figure.scale / 2
 		self.figure.sortOrder = self.base.sortOrder + 1
 	end if
 	unitDisp.sprites.sort "sortOrder"
 end function
 
-Unit.goTo = function(colRowList)
-	if self.ap < 1 then return  // out of action points!
-	self.ap = self.ap - 1
+Unit.setPosition = function(col, row)
+	self.col = col
+	self.row = row
+	self.setPositionXY mapview.xForCell(col, row), mapview.yForCell(col, row)
+end function
+
+// Consume the given number of AP.  Return true
+// if successful, false if we don't have enough AP.
+Unit.spendAP = function(actionPointsToSpend=1)
+	if self.ap < actionPointsToSpend then return false
+	self.ap = self.ap - actionPointsToSpend
 	self.updateBase
+	return true
+end function
+
+Unit.goTo = function(colRowList)
+	if not self.spendAP then return  // out of action points!
 	self.setPosition colRowList[0], colRowList[1]
+end function
+
+Unit.attack = function(targetUnit)
+	if not self.spendAP then return  // out of action points!
+	
+	// move (animate) towards the target
+	startX = self.base.x
+	startY = self.base.y
+	midX = (startX + targetUnit.base.x) * 0.5
+	midY = (startY + targetUnit.base.y) * 0.5
+	for t in range(0, 1, 0.1)
+		self.setPositionXY mathUtil.lerp(startX, midX, t),
+		mathUtil.lerp(startY, midY, t)
+		yield
+	end for
+	
+	// calculate and apply damage
+	damage = utils.roll(1, 4)
+	targetUnit.hp = targetUnit.hp - damage
+	if targetUnit.hp <= 0 then
+		// target unit is destroyed!
+		endX = targetUnit.base.x
+		endY = targetUnit.base.y
+		targetUnit.die
+		self.setPosition targetUnit.col, targetUnit.row
+	else
+		// target unit is not destroyed; this unit is repelled
+		targetUnit.updateBase
+		endX = startX
+		endY = startY
+	end if
+	
+	// move (animate) back to our starting position
+	for t in range(1, 0, -0.1)
+		self.setPositionXY mathUtil.lerp(endX, midX, t),
+		mathUtil.lerp(endY, midY, t)
+		yield
+	end for
 end function
 
 workBuffer = new PixelDisplay

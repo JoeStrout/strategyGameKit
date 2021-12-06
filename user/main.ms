@@ -50,7 +50,13 @@ handleMouse = function()
 	colRow = mapview.cellAt(mouse)
 	unit = game.unitAtCell(colRow)
 	if unit then
-		selectUnit unit
+		if unit.player == game.curPlayer then
+			// select the unit clicked
+			selectUnit unit
+		else if selectedUnit != null then
+			// attack the unit clicked with previously-selected unit
+			selectedUnit.attack unit
+		end if
 	else if selectedUnit then
 		selectedUnit.goTo colRow
 	end if
