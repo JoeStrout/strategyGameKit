@@ -1,5 +1,13 @@
 // This module is responsible for drawing the map.
 
+// Tile (terrain) types in our tile map:
+kDesert = 0
+kGrass = 1
+kWater = 2
+kWheat = 3
+kMountains = 4
+kForest = 5
+
 init = function()
 	clear
 	display(5).mode = displayMode.off
@@ -11,9 +19,17 @@ init = function()
 	td.oddRowOffset = 0.5
 	td.extent = [50, 50]
 	td.overlap = [0, 8]
-	td.clear 2
+	td.clear kWater
 	
 	outer.spacing = [td.cellSize[0] - td.overlap[0], td.cellSize[1] - td.overlap[1]]
+end function
+
+mapWidth = function()
+	return td.extent[0]
+end function
+
+mapHeight = function()
+	return td.extent[1]
 end function
 
 //----------------------------------------------------------------------
@@ -60,6 +76,57 @@ cellAt = function(xy)
 	r = rowForXY(xy.x, xy.y)
 	if not inBounds(c, r) then return null
 	return [c, r]
+end function
+
+isWater = function(col, row)
+	return td.cell(col, row) == kWater
+end function
+
+//----------------------------------------------------------------------
+// Get the neighbors of any given hex cell.
+// Slightly tricky since it depends on which row you're on.
+//----------------------------------------------------------------------
+neighbors = function(col, row, allowWater = false)
+	result = [[col-1,row], [col+1,row]]
+	if row%2 then
+		result = result + [[col,row-1], [col+1,row-1]]
+		result = result + [[col,row+1], [col+1,row+1]]
+	else
+		result = result + [[col-1,row-1], [col,row-1]]
+		result = result + [[col-1,row+1], [col,row+1]]
+	end if
+	// Remove any neighbors which are out of bounds or (optionally) water.
+	for i in range(result.len-1, 0)
+		c = result[i][0]
+		r = result[i][1]
+		if not inBounds(c,r) or (not allowWater and isWater(c,r)) then
+			result.remove i
+		end if
+	end for
+	return result
+end function
+
+isNeighboring = function(cell1, cell2)
+	return neighbors(cell1.col, cell1.row).indexOf([cell2.col, cell2.row]) != null
+end function
+
+// Darken the entire map except for cells that are
+// specified in the exceptForCells argument as [col,row],
+// which will be untinted.
+darkenMap = function(exceptForCells)
+	for row in range(0, mapHeight-1)
+		for col in range(0, mapWidth-1)
+			if exceptForCells.indexOf([col,row]) == null then
+				td.setCellTint col, row, "#444444"
+			else
+				td.setCellTint col, row, "#FFFFFF"
+			end if
+		end for
+	end for
+end function
+
+tintCell = function(col, row, tint="#FFFFFF")
+	td.setCellTint col, row, tint
 end function
 
 //----------------------------------------------------------------------

@@ -28,6 +28,16 @@ nextPlayer = function()
 	startTurn
 end function
 
+costColors = ["#FFFFFF","#FFFFFF", "#CCCCCC", "#AAAAAA", "#888888"]
+considerMoveTarget = function(unitMoving, colRow, cost, toDoList)
+	if cost > unitMoving.ap then return
+	if not unitMoving.canEnter(colRow[0], colRow[1]) then return
+	if moveCost.hasIndex(colRow) and moveCost[colRow] <= cost then return
+	moveCost[colRow] = cost
+	mapview.tintCell colRow[0], colRow[1], costColors[cost]
+	toDoList.push colRow
+end function
+
 selectedUnit = null  // currently selected unit receiving orders
 selectUnit = function(unit)
 	if unit.player != game.curPlayer then
@@ -35,6 +45,23 @@ selectUnit = function(unit)
 		return
 	end if
 	globals.selectedUnit = unit
+	// start with the whole map dark
+	mapview.darkenMap [unit.col, unit.row]
+	if unit.ap < 1 then return
+	
+	// then highlight (undarken) reachable spaces
+	globals.moveCost = {}  // key: [col,row]; value: AP required to reach this cell
+	toDo = []  // list of cells to consider expanding
+	for n in mapview.neighbors(unit.col, unit.row)
+		considerMoveTarget unit, n, 1, toDo
+	end for
+	while toDo
+		cell = toDo.pull  // (pull does a breadth-first search)
+		cost = moveCost[cell] + 1
+		for n in mapview.neighbors(cell[0], cell[1])
+			considerMoveTarget unit, n, cost, toDo
+		end for
+	end while	
 end function
 
 handleKey = function(keyChar)
@@ -58,8 +85,11 @@ handleMouse = function()
 			selectedUnit.attack unit
 		end if
 	else if selectedUnit then
-		selectedUnit.goTo colRow
+		selectedUnit.goTo colRow, moveCost
+		selectUnit selectedUnit
 	end if
+	// wait for mouse-up
+	while mouse.button; yield; end while
 end function
 
 startTurn

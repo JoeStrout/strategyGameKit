@@ -107,8 +107,16 @@ Unit.spendAP = function(actionPointsToSpend=1)
 	return true
 end function
 
-Unit.goTo = function(colRowList)
-	if not self.spendAP then return  // out of action points!
+Unit.canEnter = function(col, row)
+	if mapview.isWater(col, row) then return false
+	u = game.unitAtCell([col, row])
+	if u != null then return false
+	return true
+end function
+
+Unit.goTo = function(colRowList, moveCostMap)
+	cost = moveCostMap[colRowList]
+	if not self.spendAP(cost) then return  // out of action points!
 	self.setPosition colRowList[0], colRowList[1]
 end function
 
