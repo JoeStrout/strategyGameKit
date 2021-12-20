@@ -33,6 +33,18 @@ GameState.unitAtCell = function(colRowList)
 	return null
 end function
 
+GameState.allUnitsAtCell = function(colRowList)
+	result = []
+	for pl in self.players
+		for u in pl.units
+			if u.col == colRowList[0] and u.row == colRowList[1] then
+				result.push u
+			end if
+		end for
+	end for
+	return result
+end function
+
 newGame = function(numPlayers=3)
 	gs = new GameState
 	gs.players = []

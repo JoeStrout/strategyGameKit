@@ -7,13 +7,14 @@
 import "mathUtil"
 import "listUtil"
 import "utils"
-import "qa"
+ensureImport "qa"
 ensureImport "mapview"
 
 Unit = {}
 Unit.figure = null  // sprite that stands on top of the base
 Unit.col = 0
 Unit.row = 0
+Unit.position = function;	 return [col, row]; end function
 Unit.maxHP = 5
 Unit.hp = 5
 Unit.maxAP = 3
@@ -46,7 +47,7 @@ end function
 
 Unit.updateBase = function()
 	self.base.image = composeDisc(self.player.color,
-	  self.hp / self.maxHP * 100, self.ap, self.maxAP, self.hasOrders)
+	self.hp / self.maxHP * 100, self.ap, self.maxAP, self.hasOrders)
 end function
 
 // Add this unit to the display.
@@ -79,7 +80,7 @@ Unit.die = function()
 	self.player = null
 end function
 
-Unit.setPositionXY = function(x, y)
+Unit.setPositionXY = function(x, y, sort=true)
 	self.base.x = x
 	self.base.y = y
 	self.base.sortOrder = -self.base.y
@@ -89,13 +90,18 @@ Unit.setPositionXY = function(x, y)
 		self.figure.image.height * self.figure.scale / 2
 		self.figure.sortOrder = self.base.sortOrder + 1
 	end if
-	unitDisp.sprites.sort "sortOrder"
+	if sort then unitDisp.sprites.sort "sortOrder"
 end function
 
 Unit.setPosition = function(col, row)
+	prevCol = self.col; prevRow = self.row
 	self.col = col
 	self.row = row
+	self.player.units.removeVal self
+	self.player.units.push self
 	self.setPositionXY mapview.xForCell(col, row), mapview.yForCell(col, row)
+	updateStack prevCol, prevRow
+	updateStack col, row
 end function
 
 // Consume the given number of AP.  Return true
@@ -110,18 +116,23 @@ end function
 Unit.canEnter = function(col, row)
 	if mapview.isWater(col, row) then return false
 	u = game.unitAtCell([col, row])
-	if u != null then return false
+	if u != null and u.player != self.player then return false
 	return true
 end function
 
 Unit.goTo = function(colRowList, moveCostMap)
+	if not moveCostMap.hasIndex(colRowList) then return // can't reach it
 	cost = moveCostMap[colRowList]
 	if not self.spendAP(cost) then return  // out of action points!
 	self.setPosition colRowList[0], colRowList[1]
 end function
 
 Unit.attack = function(targetUnit)
-	if not self.spendAP then return  // out of action points!
+	// make sure target is only 1 move away
+	if not mapview.isNeighboring(self, targetUnit) then
+		return // too far away (ToDo: ranged attacks!)
+	end if
+	if not self.spendAP(1) then return  // out of action points!
 	
 	// move (animate) towards the target
 	startX = self.base.x
@@ -156,6 +167,31 @@ Unit.attack = function(targetUnit)
 		mathUtil.lerp(endY, midY, t)
 		yield
 	end for
+end function
+
+updateStack = function(col, row)
+	// Find the units at this column and row.
+	// Hide all but the topmost figure, and adjust
+	// Y positions accordingly.
+	if not globals.hasIndex("game") then return // (happens during setup)
+	units = game.allUnitsAtCell( [col,row] )
+	if not units then return
+	x = mapview.xForCell(col, row)
+	y = mapview.yForCell(col, row)
+	sortOrder = -y
+	for u in units
+		u.setPositionXY x, y, false
+		u.base.sortOrder = sortOrder
+		y = y + 8
+		sortOrder = sortOrder + 1
+		if u == units[-1] then
+			u.figure.tint = color.white
+			u.figure.sortOrder = sortOrder
+		else
+			u.figure.tint = color.clear
+		end if
+	end for
+	unitDisp.sprites.sort "sortOrder"
 end function
 
 workBuffer = new PixelDisplay

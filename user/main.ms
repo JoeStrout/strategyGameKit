@@ -2,6 +2,7 @@
 // Main Program
 
 import "utils"
+import "qa"
 ensureImport "mapview"
 ensureImport "unit"
 ensureImport "gameData"
@@ -17,7 +18,7 @@ for pl in game.players
 end for
 
 startTurn = function()
-	text.row = 25; print game.curPlayer.name + "'s Turn!"
+	text.row = 25; print game.curPlayer.name + "'s Turn!" + " "*30
 	globals.selectedUnit = null
 end function
 
@@ -76,6 +77,16 @@ end function
 handleMouse = function()
 	colRow = mapview.cellAt(mouse)
 	unit = game.unitAtCell(colRow)
+	
+	// move the selected unit on top of the clicked unit
+	// IF it is in range, and (ToDo) stackable
+	if unit and selectedUnit and 
+	  unit.player == game.curPlayer and 
+	  moveCost.hasIndex(colRow) and
+	  moveCost[colRow] <= selectedUnit.ap then
+		unit = null  // go to the cell; forget about the unit clicked
+	end if
+	
 	if unit then
 		if unit.player == game.curPlayer then
 			// select the unit clicked
@@ -83,6 +94,7 @@ handleMouse = function()
 		else if selectedUnit != null then
 			// attack the unit clicked with previously-selected unit
 			selectedUnit.attack unit
+			selectUnit selectedUnit
 		end if
 	else if selectedUnit then
 		selectedUnit.goTo colRow, moveCost
