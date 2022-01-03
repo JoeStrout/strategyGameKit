@@ -20,6 +20,7 @@ end for
 startTurn = function()
 	text.row = 25; print game.curPlayer.name + "'s Turn!" + " "*30
 	globals.selectedUnit = null
+	game.curPlayer.startTurn
 end function
 
 nextPlayer = function()
@@ -46,6 +47,8 @@ selectUnit = function(unit)
 		return
 	end if
 	globals.selectedUnit = unit
+	unit.moveToTopOfStack
+	
 	// start with the whole map dark
 	mapview.darkenMap [unit.col, unit.row]
 	if unit.ap < 1 then return
@@ -74,13 +77,25 @@ handleKey = function(keyChar)
 	end if
 end function
 
+unitAtPosition = function(xyMap)
+	for pl in game.players
+		for i in range(pl.units.len - 1)
+			u = pl.units[i]
+			if u.hitBy(xyMap) then return u
+		end for
+	end for
+end function
+
 handleMouse = function()
 	colRow = mapview.cellAt(mouse)
-	unit = game.unitAtCell(colRow)
+	unit = unitAtPosition(mouse)
+	if unit then colRow = [unit.col, unit.row]
 	
 	// move the selected unit on top of the clicked unit
 	// IF it is in range, and (ToDo) stackable
+	// and not already part of the same stack
 	if unit and selectedUnit and 
+	  (selectedUnit.col != colRow[0] or selectedUnit.row != colRow[1]) and
 	  unit.player == game.curPlayer and 
 	  moveCost.hasIndex(colRow) and
 	  moveCost[colRow] <= selectedUnit.ap then

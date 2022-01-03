@@ -45,7 +45,22 @@ Unit.init = function(owningPlayer)
 	self.figure = new Sprite
 end function
 
-Unit.updateBase = function()
+Unit.startTurn = function
+	if self.ap != self.maxAP then
+		self.ap = self.maxAP
+		self.updateBase
+	end if
+end function
+
+Unit.hitBy = function(xyMap)
+	if self.base.hitBy(xyMap) then return true
+	if self.figure.tint != color.clear and self.figure.hitBy(xyMap) then
+		return true
+	end if
+	return false
+end function
+
+Unit.updateBase = function
 	self.base.image = composeDisc(self.player.color,
 	self.hp / self.maxHP * 100, self.ap, self.maxAP, self.hasOrders)
 end function
@@ -77,6 +92,7 @@ end function
 Unit.die = function()
 	self.hide
 	self.player.units.removeVal self
+	qa.assert self.player.units.indexOf(self) == null
 	self.player = null
 end function
 
@@ -167,6 +183,16 @@ Unit.attack = function(targetUnit)
 		mathUtil.lerp(endY, midY, t)
 		yield
 	end for
+end function
+
+Unit.moveToTopOfStack = function
+	units = game.allUnitsAtCell( [self.col, self.row] )
+	if units.len < 2 then return  // only one unit (no stack)
+	idx = units.indexOf(self)
+	if idx == units.len - 1 then return // already on top
+	self.player.units.removeVal self
+	self.player.units.push self
+	updateStack self.col, self.row
 end function
 
 updateStack = function(col, row)
