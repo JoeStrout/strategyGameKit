@@ -19,7 +19,7 @@ end for
 
 startTurn = function()
 	text.row = 25; print game.curPlayer.name + "'s Turn!" + " "*30
-	globals.selectedUnit = null
+	selectUnit null
 	game.curPlayer.startTurn
 end function
 
@@ -42,6 +42,12 @@ end function
 
 selectedUnit = null  // currently selected unit receiving orders
 selectUnit = function(unit)
+	if unit == null then
+		globals.selectedUnit = null
+		mapview.undarkenMap
+		return
+	end if
+	
 	if unit.player != game.curPlayer then
 		// not our unit to select
 		return
@@ -71,6 +77,8 @@ end function
 handleKey = function(keyChar)
 	if keyChar == char(10) then
 		nextPlayer
+	else if keyChar == char(27) then
+		selectUnit null
 	else
 		text.row = 25
 		print "keyChar: " + keyChar.code
@@ -95,10 +103,10 @@ handleMouse = function()
 	// IF it is in range, and (ToDo) stackable
 	// and not already part of the same stack
 	if unit and selectedUnit and 
-	  (selectedUnit.col != colRow[0] or selectedUnit.row != colRow[1]) and
-	  unit.player == game.curPlayer and 
-	  moveCost.hasIndex(colRow) and
-	  moveCost[colRow] <= selectedUnit.ap then
+	(selectedUnit.col != colRow[0] or selectedUnit.row != colRow[1]) and
+	unit.player == game.curPlayer and 
+	moveCost.hasIndex(colRow) and
+	moveCost[colRow] <= selectedUnit.ap then
 		unit = null  // go to the cell; forget about the unit clicked
 	end if
 	

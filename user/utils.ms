@@ -36,7 +36,6 @@ Sprite.hitBy = function(xyMap, pixelLevelCheck=true)
 	x = (xyMap.x - self.x) / self.scale
 	y = (xyMap.y - self.y) / self.scale
 	c = self.image.pixel(self.image.width/2 + x, self.image.height/2 + y)
-	text.row = 25; print c	
 	return c[-2:] > "80"
 end function
 

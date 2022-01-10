@@ -9,15 +9,18 @@ import "listUtil"
 import "utils"
 ensureImport "qa"
 ensureImport "mapview"
+ensureImport "unitType"
+ensureImport "combatRules"
 
 Unit = {}
 Unit.figure = null  // sprite that stands on top of the base
 Unit.col = 0
 Unit.row = 0
+Unit.type = unitType.UnitType  // (replace with actual type)
 Unit.position = function;	 return [col, row]; end function
-Unit.maxHP = 5
+Unit.maxHP = function; return self.type.maxHP; end function
 Unit.hp = 5
-Unit.maxAP = 3
+Unit.maxAP = function; return self.type.maxAP; end function
 Unit.ap = 3
 Unit.hasOrders = false
 Unit.player = null  // Player that owns this unit
@@ -36,13 +39,18 @@ file.loadImage("pics/discAP3.png") ]
 
 unitImages = {}
 unitImages.dwarf = file.loadImage("pics/dorf2.png")
+unitImages.dragon = file.loadImage("pics/dragon.png")
 
 // Initialize this unit.  Call this after creating the unit with `new`.
-Unit.init = function(owningPlayer)
-	qa.assert owningPlayer != null
+Unit.init = function(type, owningPlayer)
+	qa.assert type != null and owningPlayer != null
+	self.type = type
+	self.hp = type.maxHP
+	self.ap = type.maxAP
 	self.player = owningPlayer
 	self.base = new Sprite
 	self.figure = new Sprite
+	self.figure.image = type.image
 end function
 
 Unit.startTurn = function
@@ -157,12 +165,12 @@ Unit.attack = function(targetUnit)
 	midY = (startY + targetUnit.base.y) * 0.5
 	for t in range(0, 1, 0.1)
 		self.setPositionXY mathUtil.lerp(startX, midX, t),
-		mathUtil.lerp(startY, midY, t)
+		mathUtil.lerp(startY, midY, t), false
 		yield
 	end for
 	
 	// calculate and apply damage
-	damage = utils.roll(1, 4)
+	damage = combatRules.calcDamage(self, targetUnit)
 	targetUnit.hp = targetUnit.hp - damage
 	if targetUnit.hp <= 0 then
 		// target unit is destroyed!
@@ -180,7 +188,7 @@ Unit.attack = function(targetUnit)
 	// move (animate) back to our starting position
 	for t in range(1, 0, -0.1)
 		self.setPositionXY mathUtil.lerp(endX, midX, t),
-		mathUtil.lerp(endY, midY, t)
+		mathUtil.lerp(endY, midY, t), false
 		yield
 	end for
 end function

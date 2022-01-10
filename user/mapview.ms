@@ -125,6 +125,14 @@ darkenMap = function(exceptForCells)
 	end for
 end function
 
+undarkenMap = function(exceptForCells)
+	for row in range(0, mapHeight-1)
+		for col in range(0, mapWidth-1)
+			td.setCellTint col, row, "#FFFFFF"
+		end for
+	end for
+end function
+
 tintCell = function(col, row, tint="#FFFFFF")
 	td.setCellTint col, row, tint
 end function

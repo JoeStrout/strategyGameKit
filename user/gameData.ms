@@ -1,6 +1,10 @@
 // This module represents the data model for the game:
 // Players, their units, state of the map, etc.
 
+import "utils"
+ensureImport "unit"
+ensureImport "unitType"
+
 Player = {}
 Player.color = color.gray
 Player.number = 0    // 0-based player number
@@ -11,8 +15,11 @@ Player.addStarterUnits = function
 	row = 19 - 3 * self.number
 	for col in range(6,10,2)
 		u = new Unit
-		u.init self
-		u.figure.image = unit.unitImages.dwarf
+		if col == 10 then
+			u.init unitType.Dragon, self
+		else
+			u.init unitType.Dwarf, self
+		end if
 		u.setPosition col, row		
 	end for
 end function
